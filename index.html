@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#5b45d8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="GRE Roadmap">
+  <title>GRE Roadmap</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;min-height:100dvh;display:grid;place-items:center;background:#f5f6fb;color:#29234f;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Arial,sans-serif}.box{text-align:center;padding:28px}.logo{width:64px;height:64px;margin:auto;border-radius:19px;background:linear-gradient(145deg,#725ee7,#4430ba);color:#fff;display:grid;place-items:center;font-size:32px;font-weight:900;box-shadow:0 12px 30px #5b45d844}h1{font-size:25px;margin:16px 0 7px}p{color:#6b6880;line-height:1.45;margin:0}.spin{width:28px;height:28px;margin:20px auto 0;border:3px solid #dcd7ff;border-top-color:#5b45d8;border-radius:50%;animation:s 1s linear infinite}@keyframes s{to{transform:rotate(360deg)}}button{display:none;margin:18px auto 0;border:0;border-radius:14px;padding:13px 18px;background:#5b45d8;color:#fff;font:700 16px inherit}
+  </style>
+</head>
+<body>
+  <main class="box">
+    <div class="logo">G</div>
+    <h1>GRE Roadmap</h1>
+    <p id="status">Loading your mobile practice app…</p>
+    <div class="spin" id="spin"></div>
+    <button id="retry" type="button">Try again</button>
+  </main>
+  <script>
+    async function loadApp(){
+      const status=document.getElementById('status');
+      const retry=document.getElementById('retry');
+      const spin=document.getElementById('spin');
+      retry.style.display='none';spin.style.display='block';status.textContent='Loading your mobile practice app…';
+      try{
+        if(!('DecompressionStream' in window)) throw new Error('This browser needs a newer Safari version.');
+        const names=['00','01','02','03'];
+        const parts=await Promise.all(names.map(async n=>{
+          const r=await fetch('./payload/'+n+'.b64',{cache:'no-store'});
+          if(!r.ok) throw new Error('App file '+n+' could not be loaded.');
+          return r.text();
+        }));
+        const raw=atob(parts.join('').replace(/\s/g,''));
+        const bytes=new Uint8Array(raw.length);
+        for(let i=0;i<raw.length;i++) bytes[i]=raw.charCodeAt(i);
+        const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+        const html=await new Response(stream).text();
+        document.open();document.write(html);document.close();
+      }catch(err){
+        console.error(err);spin.style.display='none';retry.style.display='block';
+        status.textContent=(err&&err.message)||'The app could not load. Check your connection and try again.';
+      }
+    }
+    document.getElementById('retry').addEventListener('click',loadApp);
+    loadApp();
+  </script>
+</body>
+</html>
